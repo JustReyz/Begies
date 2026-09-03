@@ -4,17 +4,24 @@ import webpush from 'web-push';
 export async function checkAndSendScheduleNotifications() {
   const now = new Date();
   
-  // Indonesian Day Name Map
-  const daysMap = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-  const todayDayName = daysMap[now.getDay()]; // e.g. 'Senin'
-  const isWeekend = now.getDay() === 0 || now.getDay() === 6;
+  // Indonesian Day Name in WITA (Asia/Makassar - Kalimantan Selatan, Banjarbaru)
+  const todayDayName = new Intl.DateTimeFormat('id-ID', {
+    timeZone: 'Asia/Makassar',
+    weekday: 'long',
+  }).format(now);
+  const isWeekend = todayDayName === 'Sabtu' || todayDayName === 'Minggu';
   
-  // Current time in HH:mm
-  const currentHours = now.getHours();
-  const currentMinutes = now.getMinutes();
+  // Current time in WITA (HH:mm)
+  const timeFormatter = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Makassar',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+  const [currentHours, currentMinutes] = timeFormatter.format(now).split(':').map(Number);
   const nowInMinutes = currentHours * 60 + currentMinutes;
 
-  console.log(`[Cron] Checking schedules for day: ${todayDayName}, time: ${currentHours}:${currentMinutes}`);
+  console.log(`[Cron] Checking schedules for day: ${todayDayName}, time: ${currentHours}:${currentMinutes} WITA`);
 
   // Fetch all schedules matching today, Weekday, or Everyday
   const validDays = [todayDayName, 'Everyday'];

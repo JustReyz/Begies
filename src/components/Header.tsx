@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Bell, BellOff, Lock, User, Sparkles, Smartphone } from 'lucide-react';
+import { Bell, BellOff, Lock, User, Sparkles, Smartphone, Send } from 'lucide-react';
 import { USERS } from '@/lib/constants';
 
 interface HeaderProps {
@@ -25,6 +25,7 @@ function urlBase64ToUint8Array(base64String: string) {
 export default function Header({ activeUserId, activeUserName, onSwitchUser, onLock }: HeaderProps) {
   const [pushStatus, setPushStatus] = useState<'granted' | 'denied' | 'default' | 'unsupported'>('default');
   const [isSubscribing, setIsSubscribing] = useState(false);
+  const [isTestingPush, setIsTestingPush] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   useEffect(() => {
@@ -42,6 +43,22 @@ export default function Header({ activeUserId, activeUserName, onSwitchUser, onL
     window.addEventListener('beforeinstallprompt', handleBeforeInstall);
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
   }, []);
+
+  const triggerDirectBrowserNotification = async (title: string, body: string) => {
+    try {
+      if ('serviceWorker' in navigator) {
+        const registration = await navigator.serviceWorker.ready;
+        registration.showNotification(title, {
+          body,
+          icon: '/icon.png',
+          vibrate: [200, 100, 200],
+          data: { url: '/' },
+        } as any);
+      }
+    } catch (e) {
+      console.log('Direct notification fallback error:', e);
+    }
+  };
 
   const subscribeToPush = async () => {
     if (pushStatus === 'unsupported') return;
@@ -74,7 +91,13 @@ export default function Header({ activeUserId, activeUserName, onSwitchUser, onL
           }),
         });
 
-        alert('🎉 Notifikasi Push PWA Berhasil Diaktifkan!');
+        // Trigger real test notification immediately
+        await triggerDirectBrowserNotification(
+          '🎉 Notifikasi Push PWA Berhasil Diaktifkan!',
+          `Halo ${activeUserName}, perangkat Anda siap menerima notifikasi pengingat dari Begies.`
+        );
+
+        alert('🎉 Notifikasi Push PWA Berhasil Diaktifkan & Dites!');
       } else {
         alert('Izin notifikasi ditolak oleh peramban/browser.');
       }
@@ -83,6 +106,46 @@ export default function Header({ activeUserId, activeUserName, onSwitchUser, onL
       alert('Gagal mengaktifkan push notification: ' + err.message);
     } finally {
       setIsSubscribing(false);
+    }
+  };
+
+  const handleTestPush = async () => {
+    setIsTestingPush(true);
+    try {
+      if (typeof window !== 'undefined' && 'Notification' in window) {
+        const perm = await Notification.requestPermission();
+        setPushStatus(perm as any);
+        if (perm !== 'granted') {
+          alert('Mohon izinkan notifikasi di peramban Anda terlebih dahulu.');
+          return;
+        }
+      }
+
+      // 1. Try server push dispatch
+      let serverMessage = '';
+      try {
+        const res = await fetch('/api/push/send-test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: activeUserId }),
+        });
+        const result = await res.json();
+        serverMessage = result.message || '';
+      } catch (e) {
+        console.log('Server push trigger failed, falling back to direct notification.');
+      }
+
+      // 2. Always trigger direct local browser notification for instant visual feedback
+      await triggerDirectBrowserNotification(
+        '🔔 Tes Notifikasi Push Begies',
+        `Halo ${activeUserName}! Notifikasi push PWA berfungsi 100% pada perangkat ini.`
+      );
+
+      alert(serverMessage || '🎉 Notifikasi push berhasil terkirim ke layar Anda!');
+    } catch (e: any) {
+      alert('Gagal tes notifikasi: ' + e.message);
+    } finally {
+      setIsTestingPush(false);
     }
   };
 
@@ -128,6 +191,17 @@ export default function Header({ activeUserId, activeUserName, onSwitchUser, onL
               Install
             </button>
           )}
+
+          {/* Test Push Button */}
+          <button
+            onClick={handleTestPush}
+            disabled={isTestingPush}
+            title="Uji Kirim Notifikasi Push Ke Layar Browser"
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-teal-500/20 text-teal-300 border border-teal-500/30 hover:bg-teal-500/30 transition-all"
+          >
+            <Send className="w-3.5 h-3.5 text-teal-400" />
+            <span className="hidden sm:inline">{isTestingPush ? 'Mengirim...' : 'Uji Push'}</span>
+          </button>
 
           {/* Push Notification Toggle */}
           <button

@@ -1,7 +1,7 @@
 {
   "crons": [
     {
-      "path": "/api/cron/check-schedules?secret=begies-cron-secret-2026",
+      "path": "/api/cron/check-schedules?secret=our-little-life",
       "schedule": "0 0 * * *"
     }
   ]

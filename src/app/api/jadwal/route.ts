@@ -31,9 +31,11 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { nama_mk, id_pengguna, hari, waktu_mulai, waktu_selesai, ruangan } = body;
 
-    if (!nama_mk || !id_pengguna || !hari || !waktu_mulai) {
+    const daysArray: string[] = Array.isArray(hari) ? hari : (hari ? [hari] : []);
+
+    if (!nama_mk || !id_pengguna || daysArray.length === 0 || !waktu_mulai) {
       return NextResponse.json(
-        { success: false, error: 'Nama mata kuliah, pengguna, hari, dan waktu mulai wajib diisi.' },
+        { success: false, error: 'Nama mata kuliah, pengguna, minimal 1 hari, dan waktu mulai wajib diisi.' },
         { status: 400 }
       );
     }
@@ -43,12 +45,12 @@ export async function POST(request: Request) {
         nama_mk,
         id_pengguna: parseInt(id_pengguna, 10),
         jadwal: {
-          create: {
-            hari,
+          create: daysArray.map((d: string) => ({
+            hari: d,
             waktu_mulai,
             waktu_selesai: waktu_selesai || null,
             ruangan: ruangan || null,
-          },
+          })),
         },
       },
       include: {
@@ -58,6 +60,63 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({ success: true, data: newMK });
+  } catch (error: any) {
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+}
+
+export async function PUT(request: Request) {
+  try {
+    const body = await request.json();
+    const { id_mk, nama_mk, id_pengguna, hari, waktu_mulai, waktu_selesai, ruangan } = body;
+
+    if (!id_mk || !nama_mk || !id_pengguna || !hari || !waktu_mulai) {
+      return NextResponse.json(
+        { success: false, error: 'Data tidak lengkap untuk memperbarui jadwal.' },
+        { status: 400 }
+      );
+    }
+
+    const daysArray: string[] = Array.isArray(hari) ? hari : [hari];
+    const mkId = parseInt(id_mk, 10);
+
+    // Update MK details and replace related Jadwal entries atomically
+    const updated = await prisma.$transaction(async (tx) => {
+      // 1. Update MataKuliah info
+      await tx.mataKuliah.update({
+        where: { id_mk: mkId },
+        data: {
+          nama_mk,
+          id_pengguna: parseInt(id_pengguna, 10),
+        },
+      });
+
+      // 2. Delete existing Jadwals for this MK
+      await tx.jadwal.deleteMany({
+        where: { id_mk: mkId },
+      });
+
+      // 3. Create updated Jadwal rows for each day
+      await tx.jadwal.createMany({
+        data: daysArray.map((d: string) => ({
+          id_mk: mkId,
+          hari: d,
+          waktu_mulai,
+          waktu_selesai: waktu_selesai || null,
+          ruangan: ruangan || null,
+        })),
+      });
+
+      return await tx.mataKuliah.findUnique({
+        where: { id_mk: mkId },
+        include: {
+          pengguna: { select: { id_pengguna: true, nama: true } },
+          jadwal: true,
+        },
+      });
+    });
+
+    return NextResponse.json({ success: true, data: updated });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
