@@ -1,0 +1,60 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Pengguna {
+  id_pengguna   Int                @id @default(autoincrement())
+  nama          String             @unique // 'Bewwy' atau 'Egie'
+  transaksi     Transaksi[]
+  mataKuliah    MataKuliah[]
+  langgananPush PushSubscription[]
+}
+
+model Transaksi {
+  id_transaksi  Int      @id @default(autoincrement())
+  jenis         String   // 'Income' atau 'Outcome'
+  nominal       Float
+  kategori      String
+  tanggal       DateTime @default(now())
+  catatan       String?
+  id_pengguna   Int
+  pengguna      Pengguna @relation(fields: [id_pengguna], references: [id_pengguna], onDelete: Cascade)
+}
+
+model Anggaran {
+  id_anggaran   Int      @id @default(autoincrement())
+  bulan         String   // 'YYYY-MM'
+  batas_nominal Float    @default(5000000)
+}
+
+model MataKuliah {
+  id_mk       Int      @id @default(autoincrement())
+  nama_mk     String
+  id_pengguna Int
+  pengguna    Pengguna @relation(fields: [id_pengguna], references: [id_pengguna], onDelete: Cascade)
+  jadwal      Jadwal[]
+}
+
+model Jadwal {
+  id_jadwal     Int        @id @default(autoincrement())
+  hari          String     // 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu', 'Weekday', 'Everyday'
+  waktu_mulai   String     // '08:00'
+  waktu_selesai String?    // '10:30'
+  ruangan       String?
+  id_mk         Int
+  mataKuliah    MataKuliah @relation(fields: [id_mk], references: [id_mk], onDelete: Cascade)
+}
+
+model PushSubscription {
+  id          Int      @id @default(autoincrement())
+  id_pengguna Int
+  endpoint    String   @unique
+  p256dh      String
+  auth        String
+  pengguna    Pengguna @relation(fields: [id_pengguna], references: [id_pengguna], onDelete: Cascade)
+}

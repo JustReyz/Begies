@@ -1,0 +1,61 @@
+CREATE DATABASE jadwalbegie;
+USE jadwalbegie;
+
+CREATE TABLE IF NOT EXISTS pengguna (
+id_pengguna INT PRIMARY KEY NOT NULL,
+nama VARCHAR(100) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS matakulyeah (
+id_mk INT PRIMARY KEY NOT NULL,
+nama_mk VARCHAR(100) NOT NULL,
+id_pengguna INT, 
+CONSTRAINT fk_pengguna
+FOREIGN KEY (id_pengguna) REFERENCES pengguna (id_pengguna)
+);
+
+CREATE TABLE IF NOT EXISTS jadwal (
+hari VARCHAR(10) NOT NULL,
+jam TIME NOT NULL, 
+ruangan VARCHAR(50),
+id_mk INT,
+CONSTRAINT fk_matakulyeah
+FOREIGN KEY (id_mk) REFERENCES matakulyeah (id_mk)
+);
+
+INSERT INTO pengguna (id_pengguna, nama)
+VALUES 
+(1, 'Bewwy'),
+(2, 'Egie');
+
+INSERT INTO matakulyeah (id_mk, nama_mk, id_pengguna)
+VALUES 
+(1, 'Kerja Praktik', 1),
+(2, 'KKN', 1),
+(3, 'Komputasi Statistika II', 2),
+(4, 'Bahasa Indonesia', 2),
+(5, 'Academic English', 2),
+(6, 'Bina Fisik dan Mental', 2),
+(7, 'Kalkulus III', 2),
+(8, 'Metode Numerik', 2),
+(9, 'Statistika Inferensia', 2),
+(10, 'Pengantar Sains Data', 2),
+(11, 'Matematika Keuangan', 2);
+
+INSERT INTO jadwal (hari, jam, ruangan, id_mk)
+VALUES 
+('Weekday', '08.00', 'Uvaya', 1),
+('Everyday', '07.00', 'Bank Sampah/ULM', 2),
+('Senin', '13.00-15.30', 'R II.2.1', 3),
+('Senin', '15.30-18.00', 'R I.2.4', 4),
+('Selasa', '13.00-15.30', 'R II.2.1', 5),
+('Selasa', '15.30-17.10', 'R I.2.5', 6),
+('Rabu', '10.30-13.00', 'R I.2.5', 7),
+('Rabu', '13.00-14.40', 'R II.2.1', 8),
+('Kamis', '08.00-10.30', 'R I.2.5', 9),
+('Kamis', '13.00-15.30', 'R I.2.5', 10),
+('Kamis', '15.30-18.00', 'R I.2.5', 11);
+
+ALTER TABLE jadwal MODIFY jam VARCHAR(50);
+
+SELECT * FROM jadwal;
