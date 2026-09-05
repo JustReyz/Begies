@@ -31,58 +31,155 @@ async function main() {
     },
   });
 
-  // 3. Initial Sample Transaksi
+  // 3. Initial Sample Kantong
+  const countKantong = await prisma.kantong.count();
+  let kantongList = [];
+  if (countKantong === 0) {
+    const kantongData = [
+      {
+        nama: 'Tabungan Bersama',
+        tipe: 'BERSAMA',
+        id_pengguna: null,
+        saldo_awal: 500000,
+        target_nominal: 5000000,
+        warna: 'emerald',
+        ikon: 'piggy-bank',
+        deskripsi: 'Tabungan impian & keperluan bersama Bewwy & Egie',
+      },
+      {
+        nama: 'Uang Kos & Tagihan',
+        tipe: 'BERSAMA',
+        id_pengguna: null,
+        saldo_awal: 200000,
+        target_nominal: 2000000,
+        warna: 'teal',
+        ikon: 'wallet',
+        deskripsi: 'Kas khusus bayar sewa kos, listrik & internet',
+      },
+      {
+        nama: 'Dompet Jajan Bewwy',
+        tipe: 'PRIBADI',
+        id_pengguna: 1,
+        saldo_awal: 100000,
+        target_nominal: 500000,
+        warna: 'rose',
+        ikon: 'coffee',
+        deskripsi: 'Uang jajan & makan santai Bewwy',
+      },
+      {
+        nama: 'Dana Darurat Bewwy',
+        tipe: 'PRIBADI',
+        id_pengguna: 1,
+        saldo_awal: 200000,
+        target_nominal: 1000000,
+        warna: 'amber',
+        ikon: 'shield',
+        deskripsi: 'Dana cadangan pribadi Bewwy',
+      },
+      {
+        nama: 'Sedekah Bewwy',
+        tipe: 'PRIBADI',
+        id_pengguna: 1,
+        saldo_awal: 10000,
+        target_nominal: 100000,
+        warna: 'blue',
+        ikon: 'heart',
+        deskripsi: 'Alokasi sedekah & berbagi Bewwy',
+      },
+      {
+        nama: 'Dompet Jajan Egie',
+        tipe: 'PRIBADI',
+        id_pengguna: 2,
+        saldo_awal: 150000,
+        target_nominal: 500000,
+        warna: 'indigo',
+        ikon: 'coffee',
+        deskripsi: 'Uang jajan & belanja Egie',
+      },
+      {
+        nama: 'Dana Darurat Egie',
+        tipe: 'PRIBADI',
+        id_pengguna: 2,
+        saldo_awal: 250000,
+        target_nominal: 1500000,
+        warna: 'purple',
+        ikon: 'shield',
+        deskripsi: 'Dana darurat pribadi Egie',
+      },
+      {
+        nama: 'Sedekah Egie',
+        tipe: 'PRIBADI',
+        id_pengguna: 2,
+        saldo_awal: 20000,
+        target_nominal: 100000,
+        warna: 'teal',
+        ikon: 'heart',
+        deskripsi: 'Alokasi sedekah & berbagi Egie',
+      },
+    ];
+
+    for (const k of kantongData) {
+      const created = await prisma.kantong.create({ data: k });
+      kantongList.push(created);
+    }
+    console.log('Sample kantong created:', kantongList.length);
+  } else {
+    kantongList = await prisma.kantong.findMany();
+  }
+
+  // 4. Initial Sample Transaksi
   const countTx = await prisma.transaksi.count();
-  if (countTx === 0) {
+  if (countTx === 0 && kantongList.length > 0) {
     const today = new Date();
+    const bersamaKos = kantongList.find(k => k.nama === 'Uang Kos & Tagihan') || kantongList[0];
+    const bersamaTabungan = kantongList.find(k => k.nama === 'Tabungan Bersama') || kantongList[0];
+    const jajanBewwy = kantongList.find(k => k.nama === 'Dompet Jajan Bewwy') || kantongList[0];
+    const jajanEgie = kantongList.find(k => k.nama === 'Dompet Jajan Egie') || kantongList[0];
+
     await prisma.transaksi.createMany({
       data: [
         {
           jenis: 'Income',
-          nominal: 5000000,
+          nominal: 2000000,
           kategori: 'Transfer Uang Bulanan',
           tanggal: new Date(today.getFullYear(), today.getMonth(), 1),
-          catatan: 'Uang saku gabungan',
+          catatan: 'Setoran bulanan ke tabungan bersama',
           id_pengguna: 1,
+          id_kantong: bersamaTabungan.id_kantong,
         },
         {
           jenis: 'Outcome',
           nominal: 1200000,
           kategori: 'Sewa Kos',
           tanggal: new Date(today.getFullYear(), today.getMonth(), 2),
-          catatan: 'Kos Egie & Bewwy',
+          catatan: 'Bayar kos bulanan',
           id_pengguna: 2,
-        },
-        {
-          jenis: 'Outcome',
-          nominal: 450000,
-          kategori: 'Belanja Bulanan',
-          tanggal: new Date(today.getFullYear(), today.getMonth(), 5),
-          catatan: 'Kebutuhan dapur & mandi',
-          id_pengguna: 1,
-        },
-        {
-          jenis: 'Outcome',
-          nominal: 50000,
-          kategori: 'Makanan & Minuman',
-          tanggal: new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1),
-          catatan: 'Makan siang bersama',
-          id_pengguna: 1,
+          id_kantong: bersamaKos.id_kantong,
         },
         {
           jenis: 'Outcome',
           nominal: 35000,
-          kategori: 'Bensin & Transport',
+          kategori: 'Makanan & Minuman',
+          tanggal: new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1),
+          catatan: 'Beli kopi & roti (pribadi)',
+          id_pengguna: 1,
+          id_kantong: jajanBewwy.id_kantong,
+        },
+        {
+          jenis: 'Outcome',
+          nominal: 40000,
+          kategori: 'Makanan & Minuman',
           tanggal: new Date(today.getFullYear(), today.getMonth(), today.getDate()),
-          catatan: 'Isi Pertamax motor',
+          catatan: 'Beli camilan (pribadi)',
           id_pengguna: 2,
+          id_kantong: jajanEgie.id_kantong,
         },
       ],
     });
-    console.log('Sample transactions created.');
+    console.log('Sample transactions created with kantong.');
   }
 
-  // 4. Initial Courses & Schedules from SQL.txt
+  // 5. Initial Courses & Schedules from SQL.txt
   const countMK = await prisma.mataKuliah.count();
   if (countMK === 0) {
     const coursesData = [
@@ -116,29 +213,6 @@ async function main() {
       });
     }
     console.log('Courses and schedule data seeded.');
-  }
-
-  // 5. Synchronize sequences for PostgreSQL
-  try {
-    const isSqlite = process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('file:');
-    if (!isSqlite) {
-      const sequences = [
-        { seq: 'Pengguna_id_pengguna_seq', table: 'Pengguna', col: 'id_pengguna' },
-        { seq: 'Transaksi_id_transaksi_seq', table: 'Transaksi', col: 'id_transaksi' },
-        { seq: 'Anggaran_id_anggaran_seq', table: 'Anggaran', col: 'id_anggaran' },
-        { seq: 'MataKuliah_id_mk_seq', table: 'MataKuliah', col: 'id_mk' },
-        { seq: 'Jadwal_id_jadwal_seq', table: 'Jadwal', col: 'id_jadwal' },
-        { seq: 'PushSubscription_id_seq', table: 'PushSubscription', col: 'id' },
-      ];
-      for (const s of sequences) {
-        await prisma.$executeRawUnsafe(
-          `SELECT setval('"${s.seq}"', COALESCE((SELECT MAX("${s.col}") FROM "${s.table}"), 1))`
-        );
-      }
-      console.log('PostgreSQL sequences synchronized.');
-    }
-  } catch (err) {
-    console.log('Sequence sync note:', err.message);
   }
 
   console.log('Seeding completed successfully!');

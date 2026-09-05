@@ -10,20 +10,39 @@ datasource db {
 model Pengguna {
   id_pengguna   Int                @id @default(autoincrement())
   nama          String             @unique // 'Bewwy' atau 'Egie'
+  kantong       Kantong[]
   transaksi     Transaksi[]
   mataKuliah    MataKuliah[]
   langgananPush PushSubscription[]
 }
 
+model Kantong {
+  id_kantong     Int         @id @default(autoincrement())
+  nama           String
+  tipe           String      @default("PRIBADI") // 'BERSAMA' atau 'PRIBADI'
+  id_pengguna    Int?        // Null jika BERSAMA, atau ID pemilik jika PRIBADI
+  pengguna       Pengguna?   @relation(fields: [id_pengguna], references: [id_pengguna], onDelete: Cascade)
+  saldo_awal     Float       @default(0)
+  target_nominal Float?      // Opsional target tabungan / batas alokasi
+  deskripsi      String?
+  warna          String      @default("emerald") // emerald, teal, blue, violet, rose, amber, indigo
+  ikon           String      @default("wallet") // wallet, coffee, heart, shield, shopping, piggy, etc.
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  transaksi      Transaksi[]
+}
+
 model Transaksi {
-  id_transaksi  Int      @id @default(autoincrement())
-  jenis         String   // 'Income' atau 'Outcome'
+  id_transaksi  Int       @id @default(autoincrement())
+  jenis         String    // 'Income' atau 'Outcome'
   nominal       Float
   kategori      String
-  tanggal       DateTime @default(now())
+  tanggal       DateTime  @default(now())
   catatan       String?
   id_pengguna   Int
-  pengguna      Pengguna @relation(fields: [id_pengguna], references: [id_pengguna], onDelete: Cascade)
+  pengguna      Pengguna  @relation(fields: [id_pengguna], references: [id_pengguna], onDelete: Cascade)
+  id_kantong    Int?
+  kantong       Kantong?  @relation(fields: [id_kantong], references: [id_kantong], onDelete: SetNull)
 }
 
 model Anggaran {
